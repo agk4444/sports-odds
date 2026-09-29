@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Odds — Daily Jev Sports Picks</title>
+<meta name="description" content="Jev's daily sports picks — NFL, MLB, NBA, NHL, MLS, soccer and cricket. Winner probabilities, updated every morning.">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+    :root {
+      color-scheme: light dark;
+      --bg: #eef1f4;
+      --surface: #ffffff;
+      --surface-2: #f5f7f9;
+      --ink: #111820;
+      --muted: #56616c;
+      --line: #d7dde3;
+      --away: #1765c1;
+      --away-soft: #e5f1ff;
+      --home: #087a49;
+      --home-soft: #dcf5e8;
+      --amber: #8a6500;
+      --amber-soft: #fff1bd;
+      --live: #087a49;
+      --shadow: 0 12px 34px rgba(16, 24, 32, .08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #080b0f;
+        --surface: #11161c;
+        --surface-2: #171d24;
+        --ink: #f2f5f7;
+        --muted: #a6b0ba;
+        --line: #29323c;
+        --away: #78b4ff;
+        --away-soft: #102d50;
+        --home: #63daa1;
+        --home-soft: #123d2b;
+        --amber: #f4c95d;
+        --amber-soft: #403313;
+        --live: #63daa1;
+        --shadow: 0 18px 44px rgba(0, 0, 0, .34);
+      }
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+      line-height: 1.45;
+    }
+    button { font: inherit; }
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: max(28px, env(safe-area-inset-top)) 0 max(48px, env(safe-area-inset-bottom));
+    }
+    .mast { border-bottom: 1px solid var(--line); padding: 6px 0 28px; }
+    .status-row { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 16px; }
+    .live-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      min-height: 30px; padding: 5px 10px; border-radius: 8px;
+      background: var(--home-soft); color: var(--home);
+      font: 600 12px/1.2 "IBM Plex Mono", monospace; letter-spacing: .04em;
+    }
+    .live-badge::before {
+      content: ""; width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 16%, transparent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 50% { opacity: .45; } }
+    .timestamp { color: var(--muted); font: 500 12px/1.4 "IBM Plex Mono", monospace; }
+    h1 {
+      max-width: 780px; margin: 0;
+      font-size: clamp(36px, 8vw, 68px); line-height: .98;
+      letter-spacing: -.055em; font-weight: 700;
+    }
+    .subtitle { max-width: 760px; margin: 18px 0 0; color: var(--muted); font-size: clamp(16px, 2.2vw, 20px); }
+    .changes-notice {
+      margin-top: 18px; padding: 12px 16px;
+      border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+      color: var(--muted); font-size: 13px;
+    }
+    .changes-notice strong { color: var(--ink); }
+    .tabs {
+      display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px;
+      margin-top: 22px; padding: 5px;
+      border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2);
+    }
+    .tab {
+      min-width: 0; border: 0; border-radius: 8px; padding: 10px 12px;
+      background: transparent; color: var(--muted); font-weight: 600; font-size: 13px; cursor: pointer;
+    }
+    .tab[aria-selected="true"] {
+      background: var(--surface); color: var(--ink);
+      box-shadow: 0 1px 5px rgba(16, 24, 32, .10);
+    }
+    .tab:focus-visible { outline: 2px solid var(--away); outline-offset: 2px; }
+    .tab small { display: inline-block; margin-left: 4px; color: var(--muted); font: 500 10px/1 "IBM Plex Mono", monospace; }
+    .section { min-height: 420px; padding-top: 34px; touch-action: pan-y; }
+    .section[hidden] { display: none; }
+    .section.is-entering { animation: panel-in .22s ease-out; }
+    .section.is-entering.from-left { animation-name: panel-in-left; }
+    @keyframes panel-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes panel-in-left { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
+    h2 { margin: 0; font-size: clamp(22px, 3vw, 30px); line-height: 1.1; letter-spacing: -.025em; }
+    .count { color: var(--muted); font: 500 12px/1.3 "IBM Plex Mono", monospace; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; color: var(--muted); font-size: 12px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 9px; height: 9px; border-radius: 50%; }
+    .legend .away-dot { background: var(--away); }
+    .legend .home-dot { background: var(--home); }
+    .games { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .game-card {
+      min-width: 0; display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(166px, .82fr);
+      gap: 22px; align-items: center; padding: 19px 20px;
+      border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
+    }
+    .game-card.away { background: color-mix(in srgb, var(--away-soft) 38%, var(--surface)); }
+    .game-card.home { background: color-mix(in srgb, var(--home-soft) 38%, var(--surface)); }
+    .game-time { margin: 0 0 9px; color: var(--muted); font: 600 11px/1.35 "IBM Plex Mono", monospace; letter-spacing: .02em; }
+    .matchup { margin: 0; }
+    .team-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 2px 0; font-size: 16px; font-weight: 600; line-height: 1.32; }
+    .team-row .record { flex: 0 0 auto; color: var(--muted); font: 500 12px/1.3 "IBM Plex Mono", monospace; }
+    .at { margin: 2px 0; color: var(--muted); font: 500 11px/1.2 "IBM Plex Mono", monospace; }
+    .market { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .market span { padding: 5px 8px; border-radius: 6px; background: color-mix(in srgb, var(--surface) 76%, transparent); color: var(--muted); font: 500 11px/1.2 "IBM Plex Mono", monospace; }
+    .inputs { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+    .pick-side { min-width: 0; }
+    .call { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 700; }
+    .game-card.away .call { color: var(--away); background: var(--away-soft); }
+    .game-card.home .call { color: var(--home); background: var(--home-soft); }
+    .probability { margin: 12px 0; }
+    .bar-labels { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: var(--muted); font: 500 11px/1.3 "IBM Plex Mono", monospace; }
+    .bar-labels strong { color: var(--ink); font-size: 20px; }
+    .bar { height: 8px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--line) 70%, transparent); }
+    .bar span { display: block; height: 100%; border-radius: inherit; }
+    .game-card.away .bar span { background: var(--away); }
+    .game-card.home .bar span { background: var(--home); }
+    .metric-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); padding-top: 10px; color: var(--muted); font-size: 12px; }
+    .metric-row strong { color: var(--ink); font: 600 13px/1.3 "IBM Plex Mono", monospace; }
+    .soccer-probs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+    .soccer-probs span { padding: 6px 7px; border-radius: 6px; background: color-mix(in srgb, var(--surface) 74%, transparent); color: var(--muted); text-align: center; font: 600 11px/1.25 "IBM Plex Mono", monospace; }
+    .soccer-probs strong { color: var(--ink); }
+    .empty-state { min-height: 320px; display: grid; place-items: center; padding: 44px 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: center; box-shadow: var(--shadow); }
+    .empty-copy { max-width: 440px; }
+    .empty-mark { display: inline-grid; place-items: center; width: 58px; height: 58px; margin-bottom: 18px; border-radius: 50%; background: var(--amber-soft); color: var(--amber); font: 600 16px/1 "IBM Plex Mono", monospace; }
+    .empty-copy h2 { margin-bottom: 10px; }
+    .empty-copy p { margin: 0; color: var(--muted); }
+    .error-state { padding: 30px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--muted); text-align: center; }
+    .swipe-hint { display: none; margin: 16px 0 0; color: var(--muted); text-align: center; font: 500 11px/1.3 "IBM Plex Mono", monospace; }
+    footer { margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    footer p { margin: 0; }
+    footer p + p { margin-top: 8px; }
+
+    @media (max-width: 860px) {
+      .games { grid-template-columns: 1fr; }
+      .tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @media (max-width: 660px) {
+      .wrap { width: min(100% - 22px, 1120px); }
+      .mast { padding-bottom: 23px; }
+      h1 { font-size: clamp(38px, 13vw, 54px); }
+      .section { padding-top: 28px; }
+      .section-head { align-items: start; flex-direction: column; gap: 8px; }
+      .game-card { grid-template-columns: 1fr; gap: 16px; padding: 17px 16px; }
+      .pick-side { padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+      .tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; padding: 4px; }
+      .tab { padding: 10px 5px; font-size: 12px; }
+      .tab small { display: none; }
+      .swipe-hint { display: block; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .live-badge::before { animation: none; }
+      .section.is-entering, .section.is-entering.from-left { animation: none; }
+    }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="mast">
+      <div class="status-row">
+        <span class="live-badge" id="live-badge">DAILY · JEV 1.13.0</span>
+        <span class="timestamp" id="timestamp">Loading…</span>
+      </div>
+      <h1>Sports Odds</h1>
+      <p class="subtitle" id="subtitle">Jev's daily picks across every league in season.</p>
+      <div class="changes-notice" id="changes-notice" hidden></div>
+    </header>
+
+    <nav class="tabs" id="tabs" role="tablist" aria-label="League picks"></nav>
+    <div id="panels"></div>
+    <p class="swipe-hint" aria-hidden="true">Swipe left or right to change leagues</p>
+
+    <footer>
+      <p>For entertainment only — not betting advice. Jev is a gut-decision model, not a pricing model. Lines via DraftKings/ESPN where shown.</p>
+      <p>This is a dated snapshot, refreshed every morning. Lines can move after the timestamp above.</p>
+    </footer>
+  </main>
+  <script src="app.js?v=20260929"></script>
+</body>
+</html>
