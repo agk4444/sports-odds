@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""Call TypeSafe's System One API (Jev) for a 3-way soccer pick.
+
+Usage:
+  jev-soccer-pick --state "MLS: Seattle Sounders (11-8-6) at LA Galaxy (13-6-6). DraftKings: draw +265."
+
+Prints JSON: model, pick (home_win/draw/away_win), the pick's probability,
+home_win_pct, draw_pct, confidence, usage.
+
+Auth: stored custom.typesafe credential, surrogate exchange only,
+api.typesafe.ai only. Never prints or logs the raw credential.
+"""
+import argparse
+import json
+import sys
+import urllib.request
+
+sys.path.insert(0, "/opt/hatch/skills/skill-creator/bin")
+from dynamic_credentials import (
+    add_surrogate_to_request,
+    read_json_response,
+    DynamicCredentialError,
+)
+
+API_URL = "https://api.typesafe.ai/v1/systemone"
+ALLOWED_HOSTS = ["api.typesafe.ai"]
+CREDENTIAL_NAME = "custom.typesafe"
+
+
+def build_questions():
+    return {
+        "pick": {
+            "type": "choice",
+            "instructions": "What is the most likely outcome of this match (full time)?",
+            "criteria": {
+                "home_win": "The home team wins",
+                "draw": "The match ends in a draw",
+                "away_win": "The away team wins",
+            },
+        },
+        "home_win_probability": {
+            "type": "score",
+            "instructions": "Probability the home team wins, 0 to 100. The three outcome probabilities (home, draw, away) must sum to about 100",
+            "criteria": [
+                "0: no chance of a home win",
+                "50: a coin-flip home win",
+                "100: certain home win",
+            ],
+        },
+        "draw_probability": {
+            "type": "score",
+            "instructions": "Probability the match ends in a draw, 0 to 100. The three outcome probabilities (home, draw, away) must sum to about 100",
+            "criteria": [
+                "0: no chance of a draw",
+                "50: a coin-flip draw",
+                "100: certain draw",
+            ],
+        },
+        "away_win_probability": {
+            "type": "score",
+            "instructions": "Probability the away team wins, 0 to 100. The three outcome probabilities (home, draw, away) must sum to about 100",
+            "criteria": [
+                "0: no chance of an away win",
+                "50: a coin-flip away win",
+                "100: certain away win",
+            ],
+        },
+        "combined_strength": {
+            "type": "score",
+            "instructions": "Combined relative strength of the two teams, 0 to 100 (50 = perfectly matched)",
+            "criteria": [
+                "0: away team vastly stronger",
+                "50: teams evenly matched",
+                "100: home team vastly stronger",
+            ],
+        },
+        "confidence": {
+            "type": "noul",
+            "instructions": "How confident is this pick, given the teams' form, the market odds, and data freshness",
+        },
+    }
+
+
+def normalize_score(questions, answers, key):
+    q = (questions or {}).get(key) or {}
+    a = (answers or {}).get(key) or {}
+    if not isinstance(a.get("score"), (int, float)):
+        return answers
+    criteria = q.get("criteria")
+    n = (len(criteria) - 1) if isinstance(criteria, list) and len(criteria) > 1 else 100
+    if n <= 0:
+        return answers
+    raw = a["score"]
+    scaled = max(0, min(100, round((raw / n) * 100)))
+    out = dict(answers)
+    out[key] = {
+        **a,
+        "raw_score": raw,
+        "score_scale": f"0-{n} criteria-index scale, normalized to 0-100",
+        "score": scaled,
+    }
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--state", required=True)
+    ap.add_argument("--signals", default="{}")
+    ap.add_argument("--model", default="jev-latest")
+    args = ap.parse_args()
+
+    questions = build_questions()
+    body = json.dumps(
+        {"state": args.state, "model": args.model, "questions": questions}
+    ).encode()
+    req = urllib.request.Request(
+        API_URL, data=body, headers={"Content-Type": "application/json"}, method="POST"
+    )
+    try:
+        add_surrogate_to_request(req, CREDENTIAL_NAME, allowed_hosts=ALLOWED_HOSTS)
+    except DynamicCredentialError as exc:
+        print(json.dumps({"ok": False, "error": f"credential: {exc}"}))
+        return 1
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = read_json_response(resp)
+    except urllib.error.HTTPError as exc:
+        try:
+            detail = exc.read().decode()[:300]
+        except Exception:
+            detail = ""
+        print(json.dumps({"ok": False, "error": f"HTTP {exc.code}: {detail}"}))
+        return 1
+    except Exception as exc:
+        print(json.dumps({"ok": False, "error": f"request failed: {exc}"}))
+        return 1
+
+    answers = data.get("answers", {})
+    for key in ("home_win_probability", "draw_probability", "away_win_probability", "combined_strength"):
+        answers = normalize_score(questions, answers, key)
+    pick = answers.get("pick", {})
+    probs = pick.get("probabilities") or {}
+    choice = pick.get("choice")
+    pick_pct = probs.get(choice) if choice else None
+    hp = answers.get("home_win_probability", {})
+    dp = answers.get("draw_probability", {})
+    conf = answers.get("confidence", {})
+    print(json.dumps({
+        "ok": True,
+        "model": data.get("model", args.model),
+        "pick": choice,
+        "pick_probabilities": probs,
+        "pick_probability": pick_pct,
+        "home_win_pct": hp.get("score"),
+        "draw_pct": dp.get("score"),
+        "away_win_pct": answers.get("away_win_probability", {}).get("score"),
+        "combined_strength": answers.get("combined_strength", {}).get("score"),
+        "confidence": conf.get("noul", pick.get("confidence")),
+        "usage": data.get("usage", {}),
+    }))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
