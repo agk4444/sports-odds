@@ -61,3 +61,6 @@ is the TypeSafe one, held by the agent runtime, never in the repo.
 
 - `refresh.log` (per-run log), `__pycache__/` (see `.gitignore`)
 - API keys or any credential
+
+---
+© 2026 AGK FIRE INC. All rights reserved. See LICENSE.
